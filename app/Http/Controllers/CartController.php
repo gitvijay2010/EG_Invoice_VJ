@@ -82,6 +82,62 @@ class CartController extends Controller
         ], 201);
     }
 
+    public function getCartItems(Request $request)
+    {
+        // Get the logged-in user
+        $user = Auth::user();
+
+        // Fetch cart items with status 0 for the logged-in user
+        $cartItems = Cart::where('user_id', $user->id)->where('status', 0)->get();
+
+        // Initialize totals
+        $subtotal = 0;
+        $discountTotal = 0;
+        $taxTotal = 0;
+
+        // Map cart items with calculations
+        $cartDetails = $cartItems->map(function ($item) use (&$subtotal, &$discountTotal, &$taxTotal) {
+            // Calculate item subtotal
+            $itemSubtotal = $item->quantity * $item->price;
+
+            // Calculate discount (if any)
+            $itemDiscount = $item->discount ?? 0;
+
+            // Calculate tax (example: 10%)
+            $itemTax = ($itemSubtotal - $itemDiscount) * 0.07; // Assuming 10% tax
+
+            // Add to totals
+            $subtotal += $itemSubtotal;
+            $discountTotal += $itemDiscount;
+            $taxTotal += $itemTax;
+
+            // Return item details
+            return [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'price' => $item->price,
+                'subtotal' => number_format($itemSubtotal, 2, '.', ''),
+                'discount' => number_format($itemDiscount, 2, '.', ''),
+                'tax' => number_format($itemTax, 2, '.', ''),
+                'final_total' => number_format(($itemSubtotal - $itemDiscount + $itemTax), 2, '.', ''),
+            ];
+        });
+
+        // Prepare response
+        $response = [
+            'cart_items' => $cartDetails,
+            'totals' => [
+                'subtotal' => number_format($subtotal, 2, '.', ''),
+                'discount' => number_format($discountTotal, 2, '.', ''),
+                'tax' => number_format($taxTotal, 2, '.', ''),
+                'final_total' => number_format(($subtotal - $discountTotal + $taxTotal), 2, '.', ''),
+            ],
+        ];
+
+        return response()->json($response);
+    }
+
     public function checkout(Request $request)
     {
         $cartItems = Cart::where('user_id', $request->user()->id)->where('status', 0)->get();

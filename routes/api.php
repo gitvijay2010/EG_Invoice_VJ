@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group( function () {
     Route::controller(CartController::class)->group(function() {
         Route::post('/cart', 'addToCart');
         Route::post('/checkout', 'checkout');
+        Route::get('/cart', 'getCartItems');
     });
     Route::post('/paynow', [OrderController::class, 'payNow']);
     Route::get('/orders', [OrderController::class, 'getUserOrders']);
